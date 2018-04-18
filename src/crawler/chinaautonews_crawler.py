@@ -10,7 +10,6 @@
 -------------------------------------------------
 """
 
-
 import log
 import tool
 import os
@@ -24,8 +23,6 @@ import time
 
 logger = log.Logger().get_logger()
 headers = {
-	"Host": "club.autohome.com.cn",
-	"Referer": "https://club.autohome.com.cn/",
 	"Upgrade-Insecure-Requests": "1",
 	"Connection": "keep-alive",
 	"Cache-Control": "max-age=0",
@@ -34,8 +31,6 @@ headers = {
 	"Accept-Encoding": "gzip, deflate, br",
 	"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8"
 }
-
-domain = 'https://club.autohome.com.cn/'
 
 
 def save_home_urls(dir, all_urls):
@@ -185,20 +180,12 @@ def crawl_brandjx_url(forum, url):
 
 
 if __name__ == '__main__':
-	dir = "F:\BiShe\workspace\github\DJH-CarCrawler/result/autohome/homeurls"
-	output = "F:\BiShe\workspace\github\DJH-CarCrawler/result/autohome/brandjxurls/品牌论坛精华帖.lst"
-	all_urls = []
-	for parent, dir_names, file_names in os.walk(dir):
-		for file_name in file_names:
-			f = dir + os.sep + file_name
-			with codecs.open(f, 'r', encoding='utf-8') as f:
-				for item in f.readlines()[:5]:
-					name, url = item.split('\t')
-					if name.find('/') != -1:
-						name = name.replace('/', '-')
-					forum = file_name
-					url = crawl_brandjx_url(forum, domain + url)
-					if url != None:
-						all_urls.append(url)
-	all_urls = set(all_urls)
-	save_brandjx_urls(output, all_urls)
+	domain = "http://www.chinaautonews.com.cn"
+	start_page = 1
+	start_url = domain + "list-6-" + start_page + ".html"
+
+	req = request.Request(url=start_url, headers=headers)
+	resp = request.urlopen(req)
+	if resp.status != 200:
+		logger.error('url open error. url = {}'.format(start_url))
+	content = resp.read()
