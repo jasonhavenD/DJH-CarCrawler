@@ -9,8 +9,6 @@
    Change Activity:2018/4/17:
 -------------------------------------------------
 """
-from urllib import request
-from bs4 import BeautifulSoup
 
 # class AutohomeCrawler():
 # 	def __init__(self):
@@ -23,28 +21,33 @@ from bs4 import BeautifulSoup
 # 		pass
 
 import log
+import tool
 import os
-import chardet
 import gzip
 import io
 import codecs
+import urllib
+from urllib import request
+from bs4 import BeautifulSoup
+import time
 
 logger = log.Logger().get_logger()
-
-domain = 'https://club.autohome.com.cn/'
 headers = {
-	"Accept-Encoding": "gzip",
-	"Cache-Control": "max-age=0",
-	'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.134 Safari/537.36',
-	"Accept-Language": "zh-CN,zh;q=0.8,en;q=0.6,en-US;q=0.4,zh-TW;q=0.2",
+	"Host": "club.autohome.com.cn",
+	"Referer": "https://club.autohome.com.cn/",
+	"Upgrade-Insecure-Requests": "1",
 	"Connection": "keep-alive",
-	"Accept-Encoding": "gzip, deflate",
-	"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
+	"Cache-Control": "max-age=0",
+	'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36',
+	"Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8,la;q=0.7,pl;q=0.6",
+	"Accept-Encoding": "gzip, deflate, br",
+	"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8"
 }
 
+domain = 'https://club.autohome.com.cn/'
 
-def save_urls(dir, all_urls):
-	dir = "F:\BiShe\workspace\github\DJH-CarCrawler/result/autohome/urls"
+
+def save_home_urls(dir, all_urls):
 	try:
 		if os.path.exists(dir) is False:
 			os.makedirs(dir)
@@ -57,7 +60,7 @@ def save_urls(dir, all_urls):
 		logger.info("urls of {} has all saved!".format(key))
 
 
-def crawl_to_urls():
+def crawl_home_urls():
 	start_url = domain
 	req = request.Request(url=start_url, headers=headers)
 	resp = request.urlopen(req)
@@ -71,6 +74,7 @@ def crawl_to_urls():
 			content = gf.read()
 	except Exception as e:
 		logger.error("{}: url = {}".format(e, start_url))
+
 	soup = BeautifulSoup(content, "lxml")
 
 	# 保存全部的urls
@@ -113,43 +117,97 @@ def crawl_to_urls():
 	hrefs = [link['href'] for link in links]
 	all_urls['摩托车论坛'] = ["{}\t{}".format(t, h) for t, h in zip(titles, hrefs)]
 
-	save_urls('', all_urls)
+	save_home_urls("F:\BiShe\workspace\github\DJH-CarCrawler/result/autohome/homeurls", all_urls)
 
 
-def crawl_from_url(dir, name, url):
-	path = dir + os.sep + name
-	logger.info("save {} to {}".format(url, path))
+# def save_file(file, type, text):
+# 	path = file + type
+# 	file = open(path, 'w')
+# 	file.truncate()  # 清空文件
+# 	file.close()
+#
+# 	with codecs.open(path, "a", encoding='utf-8') as f:
+# 		f.write(text)
+# 	logger.info("{} has been saved!".format(path))
+
+def save_brandjx_urls(file, all_urls):
+	with codecs.open(file, 'w', encoding='utf-8') as f:
+		f.writelines(all_urls)
+		logger.info("urls of {} has all saved!".format(file))
+
+
+def crawl_brandjx_url(forum, url):
+	logger.info('crawl_brandjx_url url={}'.format(url))
+	# 使用IP池
+	proxy = tool.get_random_proxy()
+	proxy_handler = request.ProxyHandler(proxy)
+	opener = request.build_opener(proxy_handler)
+	request.install_opener(opener)
+	time.sleep(3)
+	try:
+		# opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor())
+		# resp = opener.open(url)
+
+		req = urllib.request.Request(url=url, headers=headers)
+		resp = urllib.request.urlopen(req)
+
+		if resp.status != 200:
+			print("not 200!")
+
+		content = resp.read()
+		if resp.getheader('Content-Encoding') == 'gzip':
+			buf = io.BytesIO(content)
+			gf = gzip.GzipFile(fileobj=buf)
+			content = gf.read()
+		soup = ""
+		if content != None:
+			soup = BeautifulSoup(content, "lxml")
+		else:
+			logger.error("content is None!")
+			return None
+
+		if forum == "车系论坛":
+			# 品牌论坛
+			ul = soup.find("div", attrs={"class": "tabarea motor-tabarea"}).select_one("ul")
+			brand_link = ul.find_all("li")[1].select_one("a")
+			if '品牌论坛' == brand_link.string.strip():
+				brand_url = brand_link.get("href")
+				# 论坛精华帖
+				if brand_url != None:
+					brandjx = brand_url.replace('brand', 'brandjx')
+				logger.info("forum:{} brandjx={}".format(forum, brandjx))
+				return brandjx
+			return None
+		else:
+			brand_link = soup.find('li', attrs={'id': 'btnNavJinghua'})
+			if '论坛精华帖' == brand_link.string.strip():
+				brand_url = brand_link.get("href")
+				if brand_url != None:
+					brandjx = brand_url
+					return brandjx
+			return None
+		return None
+	except urllib.request.URLError as e:
+		logger.error(e)
+	except Exception as e:
+		logger.error("{}: url = {}".format(e, url))
 
 
 if __name__ == '__main__':
-	dir = "F:\BiShe\workspace\github\DJH-CarCrawler/result/autohome"
-	dir_urls = dir + os.sep + 'urls'
-	dir_files = dir + os.sep + 'files'
-	input_urls = []
-	output_files = []
-	# 创建相应目录存放爬取结果
-	for parent, dir_names, file_names in os.walk(dir_urls):
+	dir = "F:\BiShe\workspace\github\DJH-CarCrawler/result/autohome/homeurls"
+	output = "F:\BiShe\workspace\github\DJH-CarCrawler/result/autohome/brandjxurls/品牌论坛精华帖.lst"
+	all_urls = []
+	for parent, dir_names, file_names in os.walk(dir):
 		for file_name in file_names:
-			dir_path = dir_files + os.sep + file_name[:file_name.rindex('.')] + os.sep
-			input_urls.append(dir_urls + os.sep + file_name)
-			output_files.append(dir_path)
-			try:
-				if os.path.exists(dir_path) is False:
-					os.makedirs(dir_path)
-					logger.info("dir:{} has been created!".format(dir_path))
-			except Exception as e:
-				logger.error("can not make dirs filepath is {} {}".format(dir, e))
-	# print(input_urls)
-	# print(output_files)
-
-
-
-	# 爬取url
-	for dir, furl in zip(output_files, input_urls):
-		name_urls = []
-		with codecs.open(furl, 'r', encoding='utf-8') as f:
-			name_urls = f.readlines()
-
-		for item in name_urls:
-			name, url = item.split('\t')
-			crawl_from_url(dir, name, url)
+			f = dir + os.sep + file_name
+			with codecs.open(f, 'r', encoding='utf-8') as f:
+				for item in f.readlines()[:5]:
+					name, url = item.split('\t')
+					if name.find('/') != -1:
+						name = name.replace('/', '-')
+					forum = file_name
+					url = crawl_brandjx_url(forum, domain + url)
+					if url != None:
+						all_urls.append(url)
+	all_urls = set(all_urls)
+	save_brandjx_urls(output, all_urls)

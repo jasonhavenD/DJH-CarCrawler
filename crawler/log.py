@@ -38,7 +38,7 @@ class LoggerHandler(logging.Handler):
 			print("filepath is " + _filePath)
 			pass
 		try:
-			_fobj = open(_filePath, 'a')
+			_fobj = open(_filePath, 'a', encoding='utf-8')
 			_fobj.write(msg)
 			_fobj.write("\n")
 			_fobj.flush()
