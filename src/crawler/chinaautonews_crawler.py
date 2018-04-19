@@ -9,6 +9,9 @@
    Change Activity:2018/4/17:
 -------------------------------------------------
 """
+import sys
+
+sys.path.append("F:\BiShe\workspace\github\DJH-CarCrawler\src/util")
 
 import log
 import tool
@@ -46,6 +49,7 @@ class ChinaautonewsCrawler():
 		else:
 			logger.error("type is not right!")
 		self.url_middle = url_middle
+		self.urls = []
 
 	def crawl_page(self, url):
 		req = request.Request(url=url, headers=headers)
@@ -94,9 +98,23 @@ class ChinaautonewsCrawler():
 			logger.error("{}: url = {}".format(e, url))
 
 	def begin(self, start_page=0, end_page=10):
-		next_page = start_page
 		begin = datetime.datetime.now()
 		number = 1
+		# if self.urls != []:
+		# logger.info("crawl from using cached urls.lst")
+		# for url in self.urls:
+		# 	time.sleep(3)
+		# 	title, text = self.crawl_page(url)
+		# 	if title == None or text == None:
+		# 		logger.info("filter url = {}".format(url))
+		# 		continue
+		# 	name = str(number) + "-" + re.sub(re.compile(r'["/ ]'), '_', title)[:2]
+		# 	number += 1
+		# 	self.save_text(name, text, url)
+		# end = datetime.datetime.now()
+		# print('finished in ' + str((end - begin).seconds) + ' s!')
+		# else:
+		next_page = start_page
 		while (next_page < end_page):
 			next_page += 1
 			url = self.domain + self.url_middle + str(next_page) + ".html"
@@ -111,10 +129,10 @@ class ChinaautonewsCrawler():
 			req = request.Request(url=url, headers=headers)
 			resp = request.urlopen(req, timeout=5)
 
-			time.sleep(3)
+			time.sleep(2)
 
 			if resp.status != 200:
-				logger.error('url open error. url = {}'.format(start_url))
+				logger.error('url open error. url = {}'.format(url))
 			html_doc = self.pre_process_html_doc(resp.read(), url, resp)
 			soup = BeautifulSoup(html_doc, "lxml")
 
@@ -125,18 +143,25 @@ class ChinaautonewsCrawler():
 				if not href.startswith('http://www.chinaautonews.com.cn/show'):
 					continue
 				logger.info("crawling page {} url = {}".format(next_page, href))
-				# time.sleep(1)
+
+				time.sleep(1)
+
 				title, text = self.crawl_page(href)
 
 				if title == None or text == None:
-					logger.info("filter url = {}".format(url))
+					logger.info("filter url = {}".format(href))
 					continue
 
 				name = str(number) + "-" + re.sub(re.compile(r'["/ ]'), '_', title)[:2]
 				number += 1
-			# self.save_text(name, text, href)
+				self.save_text(name, text, href)
 		end = datetime.datetime.now()
 		print('finished in ' + str((end - begin).seconds) + ' s!')
+
+	def load_urls(self):
+		path = "../../result/chinaautonews/urls.lst"
+		with codecs.open(path, 'r', encoding="utf-8") as f:
+			self.urls = set(f.readlines())
 
 
 class MyThread(threading.Thread):
@@ -161,20 +186,20 @@ if __name__ == '__main__':
 		"domestic": "list-13-"
 	}
 
-	news_crawler = ChinaautonewsCrawler("news", url_middles_dict["news"])
+	# news_crawler = ChinaautonewsCrawler("news", url_middles_dict["news"])
 	inter_crawler = ChinaautonewsCrawler("inter", url_middles_dict["inter"])
 	domestic_crawler = ChinaautonewsCrawler("domestic", url_middles_dict["domestic"])
 
 	# news_crawler.begin(0, 130)
 
-	thread_news = MyThread(1, "news_crawler", news_crawler, 0, 130)
+	# thread_news = MyThread(1, "news_crawler", news_crawler, 0, 130)
 	thread_inter = MyThread(2, "inter_crawler", inter_crawler, 0, 45)
-	thread_domestic = MyThread(3, "domestic_crawler", domestic_crawler, 0, 60)
+	# thread_domestic = MyThread(3, "domestic_crawler", domestic_crawler, 0, 60)
 
-	thread_news.start()
+	# thread_news.start()
 	thread_inter.start()
-	thread_domestic.start()
+	# thread_domestic.start()
 
-	thread_news.join()
+	# thread_news.join()
 	thread_inter.join()
-	thread_domestic.join()
+	# thread_domestic.join()
