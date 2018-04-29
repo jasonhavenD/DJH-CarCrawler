@@ -129,7 +129,7 @@ class ChinaautonewsCrawler():
 			req = request.Request(url=url, headers=headers)
 			resp = request.urlopen(req, timeout=5)
 
-			time.sleep(2)
+			time.sleep(3)
 
 			if resp.status != 200:
 				logger.error('url open error. url = {}'.format(url))
@@ -144,7 +144,7 @@ class ChinaautonewsCrawler():
 					continue
 				logger.info("crawling page {} url = {}".format(next_page, href))
 
-				time.sleep(1)
+				time.sleep(2)
 
 				title, text = self.crawl_page(href)
 
@@ -152,7 +152,7 @@ class ChinaautonewsCrawler():
 					logger.info("filter url = {}".format(href))
 					continue
 
-				name = str(number) + "-" + re.sub(re.compile(r'["/ ]'), '_', title)[:2]
+				name = str(number+765) + "-" + re.sub(re.compile(r'["/ ]'), '_', title)[:2]
 				number += 1
 				self.save_text(name, text, href)
 		end = datetime.datetime.now()
@@ -193,13 +193,13 @@ if __name__ == '__main__':
 	# news_crawler.begin(0, 130)
 
 	# thread_news = MyThread(1, "news_crawler", news_crawler, 0, 130)
-	thread_inter = MyThread(2, "inter_crawler", inter_crawler, 0, 45)
-	# thread_domestic = MyThread(3, "domestic_crawler", domestic_crawler, 0, 60)
+	# thread_inter = MyThread(2, "inter_crawler", inter_crawler, 0, 45)
+	thread_domestic = MyThread(3, "domestic_crawler", domestic_crawler, 39, 60)
 
 	# thread_news.start()
-	thread_inter.start()
-	# thread_domestic.start()
+	# thread_inter.start()
+	thread_domestic.start()
 
 	# thread_news.join()
-	thread_inter.join()
-	# thread_domestic.join()
+	# thread_inter.join()
+	thread_domestic.join()
