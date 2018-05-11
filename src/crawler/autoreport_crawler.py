@@ -9,196 +9,171 @@
    Change Activity:2018/4/17:
 -------------------------------------------------
 """
+import sys
+import os
 
+sys.path.append(os.path.abspath("../util/"))
 
 import log
 import tool
-import os
-import gzip
-import io
 import codecs
-import urllib
+import re
+import time
+import datetime
+import threading
 from urllib import request
 from bs4 import BeautifulSoup
-import time
 
 logger = log.Logger().get_logger()
+
 headers = {
-	"Host": "club.autohome.com.cn",
-	"Referer": "https://club.autohome.com.cn/",
 	"Upgrade-Insecure-Requests": "1",
 	"Connection": "keep-alive",
 	"Cache-Control": "max-age=0",
 	'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36',
 	"Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8,la;q=0.7,pl;q=0.6",
-	"Accept-Encoding": "gzip, deflate, br",
+	# "Accept-Encoding": "gzip, deflate, br",
 	"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8"
 }
 
-domain = 'https://club.autohome.com.cn/'
+RE_TRY = 3
 
 
-def save_home_urls(dir, all_urls):
-	try:
-		if os.path.exists(dir) is False:
-			os.makedirs(dir)
-			logger.info("dir:{} has been created!".format(dir))
-	except Exception:
-		logger.error("can not make dirs filepath is {} ".format(dir))
-	for key, hrefs in all_urls.items():
-		with codecs.open(dir + os.sep + str(key) + ".lst", "w", encoding='utf-8') as f:
-			f.writelines('\n'.join(hrefs))
-		logger.info("urls of {} has all saved!".format(key))
+class AutoReportCrawler():
+	def __init__(self, start=1, end=1):
+		self.domain = "http://www.autoreport.cn"
+		self.dir = "../../result/autoreport/news"
+		self.furls = "../../result/autoreport/urls.lst"
+		self.start = start
+		self.end = end
+
+	def begin(self, begin=0, end=1):
+		self.crawl_page(begin, end)
+
+	def download_html(self,url,retry):
+		try:
+			req = request.Request(url=url, headers=headers)
+			resp = request.urlopen(req, timeout=5)
+			if resp.status != 200:
+				logger.error('url open error. url = {}'.format(url))
+			html_doc = resp.read().decode('utf-8')
+			return html_doc
+		except Exception as e:
+			logger.info("failed....try to bind url {}".format(url))
+			if retry > 0:
+				return self.download_html(retry-1)
+
+	def crawl_page(self, begin, end):
+		clean_html = tool.Clean_html()  # 文本清理工具
+		for url in self.urls[begin:end]:
+			time.sleep(1.5)
+			logger.info("crawling url {}".format(url))
+			html_doc=self.download_html(url,RE_TRY)
+			soup = BeautifulSoup(html_doc, "lxml")
+			article = soup.select_one("article")
+			title = clean_html.clean(article.select_one("h1").text)
+			text_tag = soup.find('div', attrs={'class': 'article-content'})
+			text = ""
+			for p in text_tag.find_all('p'):
+				text += p.text
+			text = clean_html.clean(text)
+			self.save_text(title, text, url)
 
 
-def crawl_home_urls():
-	start_url = domain
-	req = request.Request(url=start_url, headers=headers)
-	resp = request.urlopen(req)
-	if resp.status != 200:
-		logger.error('url open error. url = {}'.format(start_url))
-	content = resp.read()
-	try:
-		if resp.getheader('Content-Encoding') == 'gzip':
-			buf = io.BytesIO(content)
-			gf = gzip.GzipFile(fileobj=buf)
-			content = gf.read()
-	except Exception as e:
-		logger.error("{}: url = {}".format(e, start_url))
+	def crawl_urls(self):
+		for x in range(self.start, self.end + 1):
+			time.sleep(2)
 
-	soup = BeautifulSoup(content, "lxml")
+			urls = []
+			url = self.domain + "/newslist/a1169/?pageindex={}".format(x)
+			logger.info("crawling urls from page {}".format(x))
 
-	# 保存全部的urls
-	all_urls = {}
+			# 使用IP池
+			# proxy = tool.get_random_proxy()
+			# logger.info("proxy = {}".format(proxy))
+			# proxy_handler = request.ProxyHandler(proxy)
+			# opener = request.build_opener(proxy_handler)
+			# request.install_opener(opener)
 
-	# 车系论坛
-	div = soup.find("div", attrs={'id': 'tab-4'})
-	all_urls['车系论坛'] = []
-	forum_brand_box = div.find("div", attrs={'class': 'forum-brand-box'})
-	if forum_brand_box != None:
-		urls = forum_brand_box.find_all('ul', attrs={'class': 'forum-list02'})
-		if urls != None:
-			for url in urls:
-				links = url.find_all('a')
-				titles = [link.string for link in links]
-				hrefs = [link['href'] for link in links]
-				all_urls['车系论坛'].extend(["{}\t{}".format(t, h) for t, h in zip(titles, hrefs)])
+			req = request.Request(url=url, headers=headers)
+			resp = request.urlopen(req, timeout=5)
+			if resp.status != 200:
+				logger.error('url open error. url = {}'.format(url))
+			# html_doc = self.pre_process_html_doc(resp.read(), url, resp)
+			html_doc = resp.read().decode('utf-8')
+			soup = BeautifulSoup(html_doc, "lxml")
 
-	# 地区论坛
-	div = soup.find("div", attrs={'id': 'tab-5'})
-	forum_tab = div.find('div', attrs={'class': 'forum-tab-box'})
-	links = forum_tab.find_all('a')
-	titles = [link.string for link in links]
-	hrefs = [link['href'] for link in links]
-	all_urls['地区论坛'] = ["{}\t{}".format(t, h) for t, h in zip(titles, hrefs)]
+			article_cards = soup.find_all("div", attrs={"class": "article-card-box"})[0].find_all("div", attrs={
+				"class": "article-card"})
+			for article in article_cards:
+				href = article.select_one("a").get('href')
+				url = self.domain + href
+				urls.append(url)
+			self.save_urls(list(set(urls)), x)#url去重
 
-	# 主题论坛
-	div = soup.find("div", attrs={'id': 'tab-6'})
-	forum_tab = div.find('ul', attrs={'class': 'forum-list'})
-	links = forum_tab.find_all('a')
-	titles = [link.string for link in links]
-	hrefs = [link['href'] for link in links]
-	all_urls['主题论坛'] = ["{}\t{}".format(t, h) for t, h in zip(titles, hrefs)]
+	def save_text(self, title, text, href):
+		p = re.compile('\W')
+		title = re.sub(p, '', title)
+		if len(title) > 10:
+			title = title[:10]
+		file = self.dir + os.sep + title + '.txt'
+		with codecs.open(file, 'w', encoding='utf-8') as f:
+			f.write(text)
+			logger.info("text of {} has all saved as {}!".format(href, file))
 
-	# 摩托车论坛
-	div = soup.find("div", attrs={'id': 'tab-7'})
-	forum_tab = div.find('ul', attrs={'class': 'forum-list'})
-	links = forum_tab.find_all('a')
-	titles = [link.string for link in links]
-	hrefs = [link['href'] for link in links]
-	all_urls['摩托车论坛'] = ["{}\t{}".format(t, h) for t, h in zip(titles, hrefs)]
+	def save_urls(self, urls, number):
+		with codecs.open(self.furls, 'a', encoding='utf-8') as f:
+			f.write("\n".join(urls))
+			f.write('\n')
+			logger.info("page {} has been saved !".format(number))
 
-	save_home_urls("F:\BiShe\workspace\github\DJH-CarCrawler/result/autohome/homeurls", all_urls)
+	def load_urls(self):
+		with codecs.open(self.furls, 'r', encoding='utf-8') as f:
+			self.urls = f.readlines()
+			return self.urls
 
 
-# def save_file(file, type, text):
-# 	path = file + type
-# 	file = open(path, 'w')
-# 	file.truncate()  # 清空文件
-# 	file.close()
-#
-# 	with codecs.open(path, "a", encoding='utf-8') as f:
-# 		f.write(text)
-# 	logger.info("{} has been saved!".format(path))
+class MyThread(threading.Thread):
+	def __init__(self, threadID, name, crawler, begin, end):
+		threading.Thread.__init__(self)
+		self.threadID = threadID
+		self.name = name
+		self.crawler = crawler
+		self.begin = begin
+		self.end = end
 
-def save_brandjx_urls(file, all_urls):
-	with codecs.open(file, 'w', encoding='utf-8') as f:
-		f.writelines(all_urls)
-		logger.info("urls of {} has all saved!".format(file))
-
-
-def crawl_brandjx_url(forum, url):
-	logger.info('crawl_brandjx_url url={}'.format(url))
-	# 使用IP池
-	proxy = tool.get_random_proxy()
-	proxy_handler = request.ProxyHandler(proxy)
-	opener = request.build_opener(proxy_handler)
-	request.install_opener(opener)
-	time.sleep(3)
-	try:
-		# opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor())
-		# resp = opener.open(url)
-
-		req = urllib.request.Request(url=url, headers=headers)
-		resp = urllib.request.urlopen(req)
-
-		if resp.status != 200:
-			print("not 200!")
-
-		content = resp.read()
-		if resp.getheader('Content-Encoding') == 'gzip':
-			buf = io.BytesIO(content)
-			gf = gzip.GzipFile(fileobj=buf)
-			content = gf.read()
-		soup = ""
-		if content != None:
-			soup = BeautifulSoup(content, "lxml")
-		else:
-			logger.error("content is None!")
-			return None
-
-		if forum == "车系论坛":
-			# 品牌论坛
-			ul = soup.find("div", attrs={"class": "tabarea motor-tabarea"}).select_one("ul")
-			brand_link = ul.find_all("li")[1].select_one("a")
-			if '品牌论坛' == brand_link.string.strip():
-				brand_url = brand_link.get("href")
-				# 论坛精华帖
-				if brand_url != None:
-					brandjx = brand_url.replace('brand', 'brandjx')
-				logger.info("forum:{} brandjx={}".format(forum, brandjx))
-				return brandjx
-			return None
-		else:
-			brand_link = soup.find('li', attrs={'id': 'btnNavJinghua'})
-			if '论坛精华帖' == brand_link.string.strip():
-				brand_url = brand_link.get("href")
-				if brand_url != None:
-					brandjx = brand_url
-					return brandjx
-			return None
-		return None
-	except urllib.request.URLError as e:
-		logger.error(e)
-	except Exception as e:
-		logger.error("{}: url = {}".format(e, url))
+	def run(self):
+		logger.info("start thread...:" + self.name)
+		self.crawler.begin(self.begin, self.end)
+		logger.info("stop thread...:" + self.name)
 
 
 if __name__ == '__main__':
-	dir = "F:\BiShe\workspace\github\DJH-CarCrawler/result/autohome/homeurls"
-	output = "F:\BiShe\workspace\github\DJH-CarCrawler/result/autohome/brandjxurls/品牌论坛精华帖.lst"
-	all_urls = []
-	for parent, dir_names, file_names in os.walk(dir):
-		for file_name in file_names:
-			f = dir + os.sep + file_name
-			with codecs.open(f, 'r', encoding='utf-8') as f:
-				for item in f.readlines()[:5]:
-					name, url = item.split('\t')
-					if name.find('/') != -1:
-						name = name.replace('/', '-')
-					forum = file_name
-					url = crawl_brandjx_url(forum, domain + url)
-					if url != None:
-						all_urls.append(url)
-	all_urls = set(all_urls)
-	save_brandjx_urls(output, all_urls)
+	crawler = AutoReportCrawler(1, 10)
+	# 爬取urls
+	# crawler.crawl_urls()
+
+	# 加载urls
+	urls = crawler.load_urls()
+	crawler.crawl_page(0,5)
+
+# 三个爬虫爬取
+# start = 0
+# middle1 = int(len(urls) / 3)
+# middle2 = int(2 * len(urls) / 3)
+# end = len(urls) - 1
+#
+# logger.info("{},{},{},{}".format(start,middle1,middle2,end))
+#
+#
+# thread1 = MyThread(1, 'crawler 1', crawler, start, middle1)
+# thread2 = MyThread(2, 'crawler 2', crawler, middle1, middle2)
+# thread3 = MyThread(3, 'crawler 3', crawler, middle2, end)
+#
+# thread1.start()
+# thread2.start()
+# thread3.start()
+#
+# thread1.join()
+# thread2.join()
+# thread3.join()

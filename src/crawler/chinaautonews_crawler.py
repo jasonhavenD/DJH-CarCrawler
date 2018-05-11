@@ -10,14 +10,15 @@
 -------------------------------------------------
 """
 import sys
+import os
 
-sys.path.append("F:\BiShe\workspace\github\DJH-CarCrawler\src/util")
+sys.path.append(os.path.abspath())
 
 import log
 import tool
 import gzip
 import io
-import os
+
 import codecs
 import re
 import time
@@ -39,8 +40,18 @@ headers = {
 }
 
 
+url_middles_dict = {
+		"news": "list-6-",#新闻
+		"inter": "list-14-",#国际
+		"domestic": "list-13-",#国内
+		"newcar": "list-7-" # 国内
+}
+
+RE_TRY=3
+
+
 class ChinaautonewsCrawler():
-	TYPE = ["domestic", "inter", "news"]
+	TYPE = url_middles_dict.keys()
 
 	def __init__(self, type, url_middle):
 		self.domain = "http://www.chinaautonews.com.cn/"
@@ -51,12 +62,26 @@ class ChinaautonewsCrawler():
 		self.url_middle = url_middle
 		self.urls = []
 
+	def download_html(self,url,retry):
+		try:
+			req = request.Request(url=url, headers=headers)
+			resp = request.urlopen(req, timeout=5)
+			if resp.status != 200:
+				logger.error('url open error. url = {}'.format(url))
+			html_doc = resp.read().decode('utf-8')
+			return html_doc
+		except Exception as e:
+			logger.info("failed....try to bind url {}".format(url))
+			if retry > 0:
+				return self.download_html(retry-1)
+
 	def crawl_page(self, url):
 		req = request.Request(url=url, headers=headers)
 		resp = request.urlopen(req, timeout=5)
 		if resp.status != 200:
 			logger.error('url open error. url = {}'.format(url))
-		html_doc = self.pre_process_html_doc(resp.read(), url, resp)
+		html_doc=self.download_html(url,RE_TRY)
+		html_doc = self.pre_process_html_doc(html_doc, url, resp)
 		soup = BeautifulSoup(html_doc, "lxml")
 
 		title = soup.select_one("h1")
@@ -152,7 +177,7 @@ class ChinaautonewsCrawler():
 					logger.info("filter url = {}".format(href))
 					continue
 
-				name = str(number+765) + "-" + re.sub(re.compile(r'["/ ]'), '_', title)[:2]
+				name = str(number) + "-" + re.sub(re.compile(r'["/ ]'), '_', title)[:2]
 				number += 1
 				self.save_text(name, text, href)
 		end = datetime.datetime.now()
@@ -180,26 +205,24 @@ class MyThread(threading.Thread):
 
 
 if __name__ == '__main__':
-	url_middles_dict = {
-		"news": "list-6-",
-		"inter": "list-14-",
-		"domestic": "list-13-"
-	}
-
 	# news_crawler = ChinaautonewsCrawler("news", url_middles_dict["news"])
-	inter_crawler = ChinaautonewsCrawler("inter", url_middles_dict["inter"])
-	domestic_crawler = ChinaautonewsCrawler("domestic", url_middles_dict["domestic"])
+	# inter_crawler = ChinaautonewsCrawler("inter", url_middles_dict["inter"])
+	# domestic_crawler = ChinaautonewsCrawler("domestic", url_middles_dict["domestic"])
+	newcar_crawler = ChinaautonewsCrawler("newcar", url_middles_dict["newcar"])
 
 	# news_crawler.begin(0, 130)
 
 	# thread_news = MyThread(1, "news_crawler", news_crawler, 0, 130)
 	# thread_inter = MyThread(2, "inter_crawler", inter_crawler, 0, 45)
-	thread_domestic = MyThread(3, "domestic_crawler", domestic_crawler, 39, 60)
+	# thread_domestic = MyThread(3, "domestic_crawler", domestic_crawler, 39, 60)
+	thread_newcar = MyThread(4, "newcar_crawler", newcar_crawler, 0, 10)
 
 	# thread_news.start()
 	# thread_inter.start()
-	thread_domestic.start()
+	# thread_domestic.start()
+	thread_newcar.start()
 
 	# thread_news.join()
 	# thread_inter.join()
-	thread_domestic.join()
+	# thread_domestic.join()
+	thread_newcar.join()

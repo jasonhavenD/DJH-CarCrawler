@@ -17,16 +17,16 @@ import time
 
 if __name__ == '__main__':
 	# url = 'http://www.xicidaili.com/nn/'
-	# url_list = IPCrawler.get_url(url, nums=3)
+	# url_list = IPCrawler.get_url(url, nums=5)
 	# for i in url_list:
 	# 	print(i)
 	# 	content = IPCrawler.get_content(i)
-	# 	time.sleep(3)
+	# 	time.sleep(1.5)
 	# 	IPCrawler.get_info(content)
-	#
-	test_url = "https://www.baidu.com"  # 自定义
+
+	test_url = "http://www.autoreport.cn/"  # 自定义
 	datas=[]
 	with open("daili.txt", "r") as fd:
 		datas = fd.readlines()
-	for data in datas[:10]:
+	for data in datas:
 		IPCrawler.verif_ip(data.split(u":")[0].strip(), data.split(u":")[1].strip(), test_url)
