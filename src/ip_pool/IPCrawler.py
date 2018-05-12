@@ -37,7 +37,7 @@ def get_content(url):  # 获取网页内容
 def get_info(content):  # 提取网页信息 / ip 端口
 	datas_ip = etree.HTML(content).xpath('//table[contains(@id,"ip_list")]/tr/td[2]/text()')
 	datas_port = etree.HTML(content).xpath('//table[contains(@id,"ip_list")]/tr/td[3]/text()')
-	with open("daili.txt", "a") as fd:
+	with open("proxies.txt", "a") as fd:
 		for i in range(0, len(datas_ip)):
 			out = u""
 			out += u"" + datas_ip[i]
