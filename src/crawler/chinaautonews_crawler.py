@@ -12,7 +12,7 @@
 import sys
 import os
 
-sys.path.append(os.path.abspath())
+sys.path.append(os.path.abspath('../util/'))
 
 import log
 import tool
@@ -39,15 +39,14 @@ headers = {
 	"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8"
 }
 
-
 url_middles_dict = {
-		"news": "list-6-",#新闻
-		"inter": "list-14-",#国际
-		"domestic": "list-13-",#国内
-		"newcar": "list-7-" # 国内
+	"news": "list-6-",  # 新闻
+	"inter": "list-14-",  # 国际
+	"domestic": "list-13-",  # 国内
+	"newcar": "list-7-"  # 国内
 }
 
-RE_TRY=3
+RE_TRY = 3
 
 
 class ChinaautonewsCrawler():
@@ -62,25 +61,26 @@ class ChinaautonewsCrawler():
 		self.url_middle = url_middle
 		self.urls = []
 
-	def download_html(self,url,retry):
+	def download_html(self, url, retry):
+		time.sleep(1.5)
 		try:
 			req = request.Request(url=url, headers=headers)
 			resp = request.urlopen(req, timeout=5)
 			if resp.status != 200:
 				logger.error('url open error. url = {}'.format(url))
-			html_doc = resp.read().decode('utf-8')
+			html_doc = resp.read()
 			return html_doc
 		except Exception as e:
 			logger.info("failed....try to bind url {}".format(url))
 			if retry > 0:
-				return self.download_html(retry-1)
+				return self.download_html(url, retry - 1)
 
 	def crawl_page(self, url):
 		req = request.Request(url=url, headers=headers)
 		resp = request.urlopen(req, timeout=5)
 		if resp.status != 200:
 			logger.error('url open error. url = {}'.format(url))
-		html_doc=self.download_html(url,RE_TRY)
+		html_doc = self.download_html(url, RE_TRY)
 		html_doc = self.pre_process_html_doc(html_doc, url, resp)
 		soup = BeautifulSoup(html_doc, "lxml")
 
@@ -205,24 +205,35 @@ class MyThread(threading.Thread):
 
 
 if __name__ == '__main__':
-	# news_crawler = ChinaautonewsCrawler("news", url_middles_dict["news"])
-	# inter_crawler = ChinaautonewsCrawler("inter", url_middles_dict["inter"])
-	# domestic_crawler = ChinaautonewsCrawler("domestic", url_middles_dict["domestic"])
+	logger.info("start to crawl http://www.chinaautonews.com.cn/")
+	logger.info("start to crawl new mudle")
+	logger.info("start to crawl international mudle")
+	logger.info("start to crawl domestic mudle")
+	logger.info("start to crawl newcar mudle")
+
+	a = 0
+	b = 50
+
+	begin = datetime.datetime.now()
+	news_crawler = ChinaautonewsCrawler("news", url_middles_dict["news"])
+	inter_crawler = ChinaautonewsCrawler("inter", url_middles_dict["inter"])
+	domestic_crawler = ChinaautonewsCrawler("domestic", url_middles_dict["domestic"])
 	newcar_crawler = ChinaautonewsCrawler("newcar", url_middles_dict["newcar"])
 
-	# news_crawler.begin(0, 130)
+	thread_news = MyThread(1, "news_crawler", news_crawler, a, b)
+	thread_inter = MyThread(2, "inter_crawler", inter_crawler, a, b)
+	thread_domestic = MyThread(3, "domestic_crawler", domestic_crawler, a, b)
+	thread_newcar = MyThread(4, "newcar_crawler", newcar_crawler, a, b)
 
-	# thread_news = MyThread(1, "news_crawler", news_crawler, 0, 130)
-	# thread_inter = MyThread(2, "inter_crawler", inter_crawler, 0, 45)
-	# thread_domestic = MyThread(3, "domestic_crawler", domestic_crawler, 39, 60)
-	thread_newcar = MyThread(4, "newcar_crawler", newcar_crawler, 0, 10)
-
-	# thread_news.start()
-	# thread_inter.start()
-	# thread_domestic.start()
+	thread_news.start()
+	thread_inter.start()
+	thread_domestic.start()
 	thread_newcar.start()
 
-	# thread_news.join()
-	# thread_inter.join()
-	# thread_domestic.join()
+	thread_news.join()
+	thread_inter.join()
+	thread_domestic.join()
 	thread_newcar.join()
+
+	end = datetime.datetime.now()
+	logger.info('finished crawl pages of [{},{}] in {}s'.format(a, b, end - begin))

@@ -50,7 +50,7 @@ class AutoReportCrawler():
 	def begin(self, begin=0, end=1):
 		self.crawl_page(begin, end)
 
-	def download_html(self,url,retry):
+	def download_html(self, url, retry):
 		try:
 			req = request.Request(url=url, headers=headers)
 			resp = request.urlopen(req, timeout=5)
@@ -61,14 +61,14 @@ class AutoReportCrawler():
 		except Exception as e:
 			logger.info("failed....try to bind url {}".format(url))
 			if retry > 0:
-				return self.download_html(retry-1)
+				return self.download_html(url, retry - 1)
 
 	def crawl_page(self, begin, end):
 		clean_html = tool.Clean_html()  # 文本清理工具
 		for url in self.urls[begin:end]:
 			time.sleep(1.5)
 			logger.info("crawling url {}".format(url))
-			html_doc=self.download_html(url,RE_TRY)
+			html_doc = self.download_html(url, RE_TRY)
 			soup = BeautifulSoup(html_doc, "lxml")
 			article = soup.select_one("article")
 			title = clean_html.clean(article.select_one("h1").text)
@@ -78,7 +78,6 @@ class AutoReportCrawler():
 				text += p.text
 			text = clean_html.clean(text)
 			self.save_text(title, text, url)
-
 
 	def crawl_urls(self):
 		for x in range(self.start, self.end + 1):
@@ -109,7 +108,7 @@ class AutoReportCrawler():
 				href = article.select_one("a").get('href')
 				url = self.domain + href
 				urls.append(url)
-			self.save_urls(list(set(urls)), x)#url去重
+			self.save_urls(list(set(urls)), x)  # url去重
 
 	def save_text(self, title, text, href):
 		p = re.compile('\W')
@@ -149,31 +148,37 @@ class MyThread(threading.Thread):
 
 
 if __name__ == '__main__':
-	crawler = AutoReportCrawler(1, 10)
+	logger.info("start to crawl http://www.autoreport.cn")
+
+	a = 0
+	b = 50
+
+	crawler = AutoReportCrawler(a, b)
 	# 爬取urls
 	# crawler.crawl_urls()
-
 	# 加载urls
 	urls = crawler.load_urls()
-	crawler.crawl_page(0,5)
+	# crawler.crawl_page(a, b)
 
-# 三个爬虫爬取
-# start = 0
-# middle1 = int(len(urls) / 3)
-# middle2 = int(2 * len(urls) / 3)
-# end = len(urls) - 1
-#
-# logger.info("{},{},{},{}".format(start,middle1,middle2,end))
-#
-#
-# thread1 = MyThread(1, 'crawler 1', crawler, start, middle1)
-# thread2 = MyThread(2, 'crawler 2', crawler, middle1, middle2)
-# thread3 = MyThread(3, 'crawler 3', crawler, middle2, end)
-#
-# thread1.start()
-# thread2.start()
-# thread3.start()
-#
-# thread1.join()
-# thread2.join()
-# thread3.join()
+	begin = datetime.datetime.now()
+	# 三个爬虫爬取
+	start = 0
+	middle1 = int(len(urls) / 3)
+	middle2 = int(2 * len(urls) / 3)
+	end = len(urls) - 1
+
+	# logger.info("{},{},{},{}".format(start, middle1, middle2, end))
+
+	thread1 = MyThread(1, 'crawler 1', crawler, start, middle1)
+	thread2 = MyThread(2, 'crawler 2', crawler, middle1, middle2)
+	thread3 = MyThread(3, 'crawler 3', crawler, middle2, end)
+
+	thread1.start()
+	thread2.start()
+	thread3.start()
+
+	thread1.join()
+	thread2.join()
+	thread3.join()
+	end = datetime.datetime.now()
+	logger.info('finished crawl pages of [{},{}] in {}s'.format(a, b, end - begin))
