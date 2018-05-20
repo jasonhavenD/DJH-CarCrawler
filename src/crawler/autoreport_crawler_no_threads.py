@@ -153,38 +153,15 @@ if __name__ == '__main__':
 	logger.info("start to crawl http://www.autoreport.cn")
 	begin = datetime.datetime.now()
 	# a = 0
-	# b = 100 
-	# crawler = AutoReportCrawler(a, b)
+	# b = 100
+	# crawler = AutoReportCrawler(a, b)#页面a,b
+	crawler = AutoReportCrawler()
 	# 爬取urls
 	# crawler.crawl_urls()
 	# 加载urls
-	# urls = crawler.load_urls()
-	# crawler.crawl_page(a, b)
-
 	a = 0
-	b = 3000 
-	crawler = AutoReportCrawler()
-	# 加载urls
+	b = 3000
 	urls = crawler.load_urls()
-	# 三个爬虫爬取
-	start = 0
-	middle1 = int(b / 3)
-	middle2 = int(middle1*2)
-	end = b - 1
-
-	# logger.info("{},{},{},{}".format(start, middle1, middle2, end))
-
-	thread1 = MyThread(1, 'crawler 1', crawler, start, middle1)
-	thread2 = MyThread(2, 'crawler 2', crawler, middle1, middle2)
-	thread3 = MyThread(3, 'crawler 3', crawler, middle2, end)
-
-	thread1.start()
-	thread2.start()
-	thread3.start()
-
-	thread1.join()
-	thread2.join()
-	thread3.join()
-	
+	crawler.crawl_page(a, b) # 100 200 400 800 1600 2400 3000
 	end = datetime.datetime.now()
 	logger.info('finished crawl pages of [{},{}] in {}s'.format(a, b, end - begin))

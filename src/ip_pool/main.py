@@ -25,8 +25,8 @@ if __name__ == '__main__':
 	# 	IPCrawler.get_info(content)
 
 	test_url = "http://www.autoreport.cn/"  # 自定义
-	datas=[]
+	url_list=[]
 	with open("daili.txt", "r") as fd:
-		datas = fd.readlines()
-	for data in datas:
+		url_list = fd.readlines()
+	for data in url_list:
 		IPCrawler.verif_ip(data.split(u":")[0].strip(), data.split(u":")[1].strip(), test_url)

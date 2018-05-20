@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>不同规模下的数据采集速率比较</title>
+    <meta charset="utf-8">
+    <script src="https://cdn.bootcss.com/echarts/4.0.4/echarts.min.js"></script>
+</head>
+
+<body>
+    <center>
+        <div id="target" style="margin-top:50px;height: 800px;width: 1500px;">
+            <script type="text/javascript">
+                option = {
+                    title: {
+                        text: ''
+                    },
+                    tooltip: {
+                        trigger: 'axis'
+                    },
+                    legend: {
+                        data: ['一般爬虫', '多线程爬虫']
+                    },
+                    grid: {
+                        left: '3%',
+                        right: '4%',
+                        bottom: '3%',
+                        containLabel: true
+                    },
+                    toolbox: {
+                        feature: {
+                            saveAsImage: {}
+                        }
+                    },
+                    xAxis: {
+                        type: 'category',
+                        name: '数量规模/条',
+                        boundaryGap: false,
+                        axisLabel: {
+                            textStyle: {
+                                fontSize: 20 // 让字体变大
+                            }
+                        },
+                        data: ['100', '200', '400', '800', '1600', '3000'],
+                    },
+                    yAxis: {
+                        type: 'value',
+                        name: '时间/秒',
+                        axisLabel: {
+                            textStyle: {
+                                fontSize: 20 // 让字体变大
+                            }
+                        }
+                    },
+                    series: [
+                        {
+                            name: '一般爬虫',
+                            type: 'line',
+                            
+                            label: {
+                                normal: {
+                                    show: true,
+                                    fontSize: 18,
+                                    position: 'top'
+                                }
+                            },
+                            data: [2.53, 5.40, 11.18, 22.59, 46.08, 89.24]
+
+                        },
+                        {
+                            name: '多线程爬虫',
+                            type: 'line',
+                            label: {
+                                normal: {
+                                    show: true,
+                                    fontSize: 18,
+                                    position: 'top'
+                                }
+                            },
+                            data: [0.57, 1.57, 3.50, 7.39, 15.33, 29.32]
+                        }
+                    ]
+                };
+
+                var myChart = echarts.init(document.getElementById('target'));
+                myChart.setOption(option);
+            </script>
+        </div>
+    </center>
+</body>
+
+</html>
