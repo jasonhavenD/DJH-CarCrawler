@@ -1,9 +1,5 @@
-#! /usr/bin/env/python
-#
-# coding utf-8
-#
-# jasonahven
-#
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
 
 
 import random

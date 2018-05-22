@@ -78,9 +78,8 @@ class AutoReportCrawler():
 			text = ""
 			for p in text_tag.find_all('p'):
 				text += p.text
-
 			text = clean_html.clean(text)
-			self.save_text(title, text, url) #测试实验关闭
+			# self.save_text(title, text, url) #测试实验关闭
 
 	def crawl_urls(self):
 		for x in range(self.start, self.end + 1):
@@ -154,15 +153,16 @@ if __name__ == '__main__':
 	logger.info("start to crawl http://www.autoreport.cn")
 	begin = datetime.datetime.now()
 	# a = 0
-	# b = 150
+	# b = 100 
 	# crawler = AutoReportCrawler(a, b)
-	# # 爬取urls
+	# 爬取urls
 	# crawler.crawl_urls()
 	# 加载urls
 	# urls = crawler.load_urls()
+	# crawler.crawl_page(a, b)
 
 	a = 0
-	b = 4000
+	b = 3000 
 	crawler = AutoReportCrawler()
 	# 加载urls
 	urls = crawler.load_urls()
