@@ -212,7 +212,7 @@ if __name__ == '__main__':
 	logger.info("start to crawl newcar mudle")
 
 	a = 0
-	b = 50
+	b = 5
 
 	begin = datetime.datetime.now()
 	news_crawler = ChinaautonewsCrawler("news", url_middles_dict["news"])
@@ -236,4 +236,4 @@ if __name__ == '__main__':
 	thread_newcar.join()
 
 	end = datetime.datetime.now()
-	logger.info('finished crawl pages of [{},{}] in {}s'.format(a, b, end - begin))
+	logger.info('finished crawl pages of [{},{}] in {}s'.format(a, b*20, end - begin))

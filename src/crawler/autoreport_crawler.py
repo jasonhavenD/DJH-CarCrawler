@@ -154,15 +154,13 @@ if __name__ == '__main__':
 	logger.info("start to crawl http://www.autoreport.cn")
 	begin = datetime.datetime.now()
 	# a = 0
-	# b = 150
+	# b = 30
 	# crawler = AutoReportCrawler(a, b)
 	# # 爬取urls
 	# crawler.crawl_urls()
-	# 加载urls
-	# urls = crawler.load_urls()
 
 	a = 0
-	b = 4000
+	b = 100
 	crawler = AutoReportCrawler()
 	# 加载urls
 	urls = crawler.load_urls()
@@ -185,6 +183,6 @@ if __name__ == '__main__':
 	thread1.join()
 	thread2.join()
 	thread3.join()
-	
+
 	end = datetime.datetime.now()
 	logger.info('finished crawl pages of [{},{}] in {}s'.format(a, b, end - begin))
